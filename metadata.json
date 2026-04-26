@@ -1,0 +1,6 @@
+{
+  "name": "ETF Performance",
+  "description": "Visualizing monthly and cumulative returns for various global ETFs and indices including KODEX, TIGER, and ACE products from 2024 to 2026.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
