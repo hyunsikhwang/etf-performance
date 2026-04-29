@@ -38,6 +38,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAssets, setSelectedAssets] = useState<string[]>(Object.keys(assets));
+  const [hoveredAssetKey, setHoveredAssetKey] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
   const [chartType, setChartType] = useState<'yearly' | 'monthly'>('yearly');
 
@@ -546,6 +547,107 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* Monthly Ranking Table */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white p-8 rounded-3xl border border-[#D2D2D7] shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+                    <BarChart3 size={20} className="text-blue-600" />
+                    Monthly Performance Ranking ({chartType === 'yearly' ? selectedYear : selectedMonth.split('.')[0].trim()})
+                  </h2>
+                  <p className="text-xs text-[#86868B] mt-1">Asset ranking based on monthly returns (%)</p>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse min-w-[800px]">
+                  <thead>
+                    <tr className="bg-[#F5F5F7] border-y border-[#D2D2D7]">
+                      <th className="px-4 py-3 font-semibold text-[#86868B] w-16 text-center border-r border-[#D2D2D7]">Rank</th>
+                      {performanceData
+                        .filter((p, i) => i > 0 && p.date.startsWith(chartType === 'yearly' ? selectedYear : selectedMonth.split('.')[0].trim())) 
+                        .map((p) => (
+                          <th key={p.date} className="px-4 py-3 font-semibold text-[#1D1D1F] border-r border-[#D2D2D7] min-w-[100px] text-center">
+                            {p.date.split('.').slice(0, 2).join('.')}
+                          </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: Math.min(selectedAssets.length, 10) }).map((_, rankIdx) => (
+                      <tr key={`rank-${rankIdx}`} className="border-b border-[#D2D2D7] hover:bg-blue-50/20 transition-colors">
+                        <td className="px-4 py-3 font-bold text-[#86868B] text-center bg-[#F9F9FB] border-r border-[#D2D2D7]">
+                          {rankIdx + 1}
+                        </td>
+                        {performanceData
+                          .filter((p, i) => i > 0 && p.date.startsWith(chartType === 'yearly' ? selectedYear : selectedMonth.split('.')[0].trim()))
+                          .map((p) => {
+                            // Sort assets for this specific month
+                            const monthRanking = selectedAssets
+                              .map(key => ({
+                                key,
+                                name: assets[key].subName,
+                                return: p[`${key}_mon`] as number,
+                                color: assets[key].color
+                              }))
+                              .sort((a, b) => b.return - a.return);
+                            
+                            const winner = monthRanking[rankIdx];
+                            const isSelected = hoveredAssetKey === winner?.key;
+                            const isNothingHovered = hoveredAssetKey === null;
+                            const isDimmed = !isNothingHovered && !isSelected;
+                            
+                            return (
+                              <td 
+                                key={p.date} 
+                                className={cn(
+                                  "p-1 border-r border-[#D2D2D7] align-top transition-all duration-300",
+                                  isDimmed ? "opacity-10 scale-[0.97]" : "opacity-100 scale-100"
+                                )}
+                              >
+                                {winner ? (
+                                  <div 
+                                    className={cn(
+                                      "h-full min-h-[52px] p-2 rounded-lg flex flex-col justify-between transition-all duration-300 cursor-pointer",
+                                      isSelected ? "shadow-md ring-1 ring-white/50 brightness-110" : "shadow-sm"
+                                    )}
+                                    style={{ backgroundColor: winner.color }}
+                                    onMouseEnter={() => setHoveredAssetKey(winner.key)}
+                                    onMouseLeave={() => setHoveredAssetKey(null)}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <span className={cn(
+                                        "text-[9px] font-bold truncate leading-[1.1] transition-all",
+                                        isSelected ? "text-white" : "text-white/85"
+                                      )}>
+                                        {winner.name}
+                                      </span>
+                                    </div>
+                                    <div className={cn(
+                                      "text-[10px] font-mono font-bold text-right leading-none",
+                                      isSelected ? "text-white" : "text-white/70"
+                                    )}>
+                                      {winner.return > 0 ? '+' : ''}{winner.return.toFixed(1)}%
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="h-full min-h-[52px] p-2 bg-[#F5F5F7] rounded-lg flex items-center justify-center text-[#D2D2D7] italic text-[10px]">-</div>
+                                )}
+                              </td>
+                            );
+                          })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
           </div>
         </div>
       </main>
